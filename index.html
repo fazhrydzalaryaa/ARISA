@@ -8,8 +8,8 @@
   <title>ARISA - Augmented Reality Isyarat Anak</title>
 
   <!-- CDN LIBRARIES -->
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.1/dist/mindar-image-aframe.prod.js"></script>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     *,
@@ -751,7 +751,7 @@
   <!-- ======= AR CONTAINER ======= -->
   <div id="ar-container">
     <a-scene id="ar-scene"
-      mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: true; uiLoading: no; uiScanning: no; uiError: no;"
+      mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
       embedded
       color-space="sRGB"
       renderer="colorManagement: true; antialias: true;"
@@ -1059,28 +1059,30 @@
         setTimeout(function() { elSplash.style.display = 'none'; }, 500);
       }, 1500);
 
-      // ======= WELCOME → APP =======
+      // ======= WELCOME → APP + START AR =======
       document.getElementById('btn-mulai').addEventListener('click', function() {
         elWelcome.classList.add('hidden');
         setTimeout(function() {
           elWelcome.style.display = 'none';
           elApp.style.display = 'flex';
-          // AR already auto-started with the scene, just listen for events
+
+          // Start AR setelah user klik (butuh user gesture untuk kamera)
           var scene = document.getElementById('ar-scene');
-          if (scene) {
-            scene.addEventListener('arReady', function() {
-              arReady = true;
-              setStatus('Mencari marker...');
-              startNoMarkerTimer();
-            });
-            scene.addEventListener('arError', function(e) {
-              setStatus('❌ Error AR: periksa kamera & izin');
-              console.error('MindAR error:', e.detail);
-            });
-            if (scene.hasLoaded) { arReady = true;
-              setStatus('Mencari marker...');
-              startNoMarkerTimer(); }
+          if (scene && scene.components && scene.components['mindar-image']) {
+            // Trigger autoStart via update
+            scene.setAttribute('mindar-image', { autoStart: true });
           }
+
+          // Listen for AR ready
+          scene.addEventListener('arReady', function() {
+            arReady = true;
+            setStatus('Mencari marker...');
+            startNoMarkerTimer();
+          });
+          scene.addEventListener('arError', function(e) {
+            setStatus('❌ Error AR: periksa izin kamera');
+            console.error('MindAR error:', e.detail);
+          });
         }, 400);
       });
 
