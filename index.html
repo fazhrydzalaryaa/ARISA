@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>ARISA - Augmented Reality Isyarat Anak</title>
+
+  <!-- CDN LIBRARIES -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    *,
+    *::before,
+    *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f0eb;
+      color: #1a1a2e;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* ======= SPLASH SCREEN ======= */
+    #splash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9999;
+      background: #e8f5e9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease;
+    }
+    #splash.hidden { opacity: 0; pointer-events: none; }
+
+    .splash-icon {
+      font-size: 80px;
+      margin-bottom: 8px;
+      animation: float 2s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,
+      100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .splash-title {
+      font-size: 42px;
+      font-weight: 900;
+      color: #2e7d32;
+      letter-spacing: 4px;
+      margin-bottom: 4px;
+    }
+    .splash-sub {
+      font-size: 14px;
+      color: #558b2f;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+    .splash-loading {
+      margin-top: 40px;
+      font-size: 13px;
+      color: #81c784;
+      animation: pulse 1s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,
+      100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* ======= WELCOME SCREEN ======= */
+    #welcome {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 100;
+      background: linear-gradient(135deg, #e8f5e9, #c8e6c9, #a5d6a7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 32px;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #welcome.hidden {
+      opacity: 0;
+      transform: scale(1.05);
+      pointer-events: none;
+    }
+
+    .welcome-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    .welcome-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1b5e20;
+      margin-bottom: 6px;
+    }
+    .welcome-sub {
+      font-size: 15px;
+      color: #2e7d32;
+      font-weight: 500;
+      margin-bottom: 40px;
+    }
+    .welcome-btn {
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      padding: 16px 48px;
+      border-radius: 50px;
+      font-size: 17px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(46, 125, 50, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .welcome-btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 3px 10px rgba(46, 125, 50, 0.25);
+    }
+    .welcome-leaf {
+      font-size: 32px;
+      margin-top: 30px;
+      opacity: 0.3;
+    }
+
+    /* ======= AR CONTAINER ======= */
+    #ar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* ======= PAGE SYSTEM ======= */
+    #app {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      pointer-events: none;
+    }
+    #app>* {
+      pointer-events: auto;
+    }
+
+    .page {
+      display: none;
+      flex: 1;
+      position: relative;
+      overflow-y: auto;
+      background: #f5f0eb;
+      flex-direction: column;
+    }
+    .page.active {
+      display: flex;
+    }
+
+    /* ======= BOTTOM NAV ======= */
+    .bottom-nav {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 6px 0 max(6px, env(safe-area-inset-bottom, 6px));
+      background: #fff;
+      border-top: 1px solid #e8e0d8;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      padding: 4px 16px;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      color: #aaa;
+      font-size: 10px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      min-width: 56px;
+    }
+    .nav-item .icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+    .nav-item.active {
+      color: #2e7d32;
+      background: rgba(46, 125, 50, 0.06);
+    }
+    .nav-item:active {
+      transform: scale(0.92);
+    }
+
+    /* ======= PAGE: HOME ======= */
+    #page-home {
+      padding: 20px 20px 0;
+      gap: 0;
+      background: linear-gradient(180deg, #e8f5e9 0%, #f5f0eb 40%);
+    }
+    .home-greeting {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1b5e20;
+      margin-bottom: 2px;
+    }
+    .home-sub {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .home-scan-card {
+      background: linear-gradient(135deg, #2e7d32, #43a047);
+      border-radius: 20px;
+      padding: 24px;
+      color: #fff;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(46, 125, 50, 0.25);
+    }
+    .home-scan-card .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .home-scan-card .big-icon {
+      font-size: 48px;
+    }
+    .home-scan-card h2 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .home-scan-card p {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+    .home-scan-card .btn-scan {
+      margin-top: 14px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: fit-content;
+    }
+    .home-scan-card .btn-scan:active {
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    .section-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 100px;
+    }
+    .cat-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e8e0d8;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .cat-card:active {
+      transform: scale(0.96);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+    .cat-card .emoji {
+      font-size: 32px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .cat-card .name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .cat-card .count {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    /* ======= PAGE: SCANNER ======= */
+    #page-scanner {
+      background: transparent;
+      position: relative;
+    }
+
+    .scanner-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent);
+      z-index: 5;
+    }
+    .scanner-top .back {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+    .scanner-top .title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .scan-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .scan-frame {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      max-width: 65vw;
+      max-height: 65vw;
+      animation: framePulse 2.5s ease-in-out infinite;
+    }
+    @keyframes framePulse {
+      0%,
+      100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    .scan-frame .corner {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-color: rgba(255, 255, 255, 0.7);
+      border-style: solid;
+    }
+    .scan-frame .corner.tl { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .scan-frame .corner.tr { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .scan-frame .corner.bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .scan-frame .corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+    .scan-line {
+      position: absolute;
+      top: 0;
+      left: 10%;
+      width: 80%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+      animation: scanMove 2s ease-in-out infinite;
+      border-radius: 2px;
+      filter: blur(1px);
+    }
+    @keyframes scanMove {
+      0% { top: 5%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 95%; opacity: 0; }
+    }
+
+    .scan-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+      text-align: center;
+    }
+    .scan-tags {
+      display: flex;
+      gap: 8px;
+    }
+    .scan-tags span {
+      font-size: 12px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .scanner-status {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 30px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      max-width: calc(100% - 40px);
+      transition: all 0.3s;
+    }
+    .scanner-status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
+      animation: dotBlink 1.4s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .scanner-status.found .dot {
+      background: #66bb6a;
+      animation: none;
+    }
+    .scanner-status.found {
+      color: #a5d6a7;
+      border-color: rgba(102, 187, 106, 0.3);
+    }
+    @keyframes dotBlink {
+      0%,
+      100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* Info panel hasil scan */
+    #scan-result {
+      position: absolute;
+      bottom: 130px;
+      left: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 20px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      pointer-events: none;
+      text-align: center;
+    }
+    #scan-result.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    #scan-result .emoji {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    #scan-result .name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+    }
+    #scan-result .desc {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+      margin: 4px 0 12px;
+    }
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .result-actions button {
+      padding: 8px 20px;
+      border-radius: 30px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .result-actions button:active { transform: scale(0.94); }
+    .btn-isyarat {
+      background: #2e7d32;
+      color: #fff;
+    }
+    .btn-ulang {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    #scan-timeout {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 24px 28px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s, transform 0.35s;
+      max-width: 80vw;
+    }
+    #scan-timeout.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+    #scan-timeout .icon {
+      font-size: 40px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    #scan-timeout .text {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+    }
+
+    /* ======= PAGE: LIBRARY ======= */
+    #page-library {
+      padding: 20px 20px 100px;
+      gap: 8px;
+    }
+    .lib-header {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1b5e20;
+      margin-bottom: 2px;
+    }
+    .lib-sub {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 14px;
+    }
+
+    .lib-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px solid #e8e0d8;
+      margin-bottom: 8px;
+      transition: transform 0.15s;
+    }
+    .lib-card:active { transform: scale(0.98); }
+
+    .lib-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .lib-card-body { flex: 1; min-width: 0; }
+    .lib-card-name { font-size: 16px; font-weight: 700; }
+    .lib-card-desc { font-size: 12px; color: #999; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lib-card-status {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+    .lib-card-status.pending {
+      background: #fff8e1;
+      color: #f9a825;
+      border-color: #ffe082;
+    }
+
+    /* ======= PAGE: SETTINGS ======= */
+    #page-settings {
+      padding: 20px 20px 100px;
+      gap: 6px;
+    }
+    .settings-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1b5e20;
+      margin-bottom: 16px;
+    }
+
+    .settings-group {
+      background: #fff;
+      border-radius: 16px;
+      padding: 4px 16px;
+      border: 1px solid #e8e0d8;
+      margin-bottom: 10px;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+    }
+    .settings-row+.settings-row {
+      border-top: 1px solid #f0ebe5;
+    }
+    .settings-label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .settings-label small {
+      display: block;
+      font-size: 12px;
+      font-weight: 400;
+      color: #999;
+      margin-top: 1px;
+    }
+    .settings-value {
+      font-size: 13px;
+      color: #666;
+      text-align: right;
+    }
+
+    .toggle {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: #ddd;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.25s;
+      flex-shrink: 0;
+    }
+    .toggle.on {
+      background: #43a047;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.25s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+    .toggle.on::after {
+      transform: translateX(20px);
+    }
+
+    .settings-about {
+      text-align: center;
+      padding: 20px 0 10px;
+      font-size: 12px;
+      color: #bbb;
+    }
+    .settings-about span {
+      color: #2e7d32;
+    }
+
+    /* Scrollbar */
+    .page::-webkit-scrollbar {
+      width: 3px;
+    }
+    .page::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .page::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 3px;
+    }
+
+    .a-enter-vr,
+    .a-enter-ar {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======= SPLASH SCREEN ======= -->
+  <div id="splash">
+    <div class="splash-icon">🌿</div>
+    <div class="splash-title">ARISA</div>
+    <div class="splash-sub">Augmented Reality Isyarat Anak</div>
+    <div class="splash-loading">Loading...</div>
+  </div>
+
+  <!-- ======= WELCOME SCREEN ======= -->
+  <div id="welcome">
+    <div class="welcome-icon">🌿</div>
+    <div class="welcome-title">Belajar BISINDO</div>
+    <div class="welcome-sub">Halo, Teman!</div>
+    <button class="welcome-btn" id="btn-mulai">Mulai Belajar</button>
+    <div class="welcome-leaf">🌿</div>
+  </div>
+
+  <!-- ======= AR CONTAINER ======= -->
+  <div id="ar-container">
+    <a-scene id="ar-scene"
+      mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
+      embedded
+      color-space="sRGB"
+      renderer="colorManagement: true; antialias: true;"
+      vr-mode-ui="enabled: false"
+      loading-screen="enabled: false">
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-assets>
+        <video id="vid-buku" src="./assets/videos/Buku.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline muted loop></video>
+        <video id="vid-apel" src="./assets/videos/Apel.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline muted loop></video>
+        <video id="vid-pisang" src="./assets/videos/Pisang.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline muted loop></video>
+      </a-assets>
+
+      <!-- MARKER 0 — BUKU -->
+      <a-entity mindar-image="targetIndex: 0" class="ar-marker" data-index="0">
+        <a-entity position="0 -0.1 0" scale="0.8 0.8 0.8"
+          gltf-model="./assets/models/Buku.glb"
+          animation="property: rotation; to: 0 360 0; dur: 8000; loop: true; easing: linear">
+        </a-entity>
+        <a-entity position="0 -0.15 -0.6">
+          <a-plane width="0.7" height="0.4"
+            material="shader: flat; src: #vid-buku; transparent: false;">
+          </a-plane>
+        </a-entity>
+      </a-entity>
+
+      <!-- MARKER 1 — APEL -->
+      <a-entity mindar-image="targetIndex: 1" class="ar-marker" data-index="1">
+        <a-entity position="0 -0.1 0" scale="0.8 0.8 0.8"
+          gltf-model="./assets/models/Apel.glb"
+          animation="property: rotation; to: 0 360 0; dur: 8000; loop: true; easing: linear">
+        </a-entity>
+        <a-entity position="0 -0.15 -0.6">
+          <a-plane width="0.7" height="0.4"
+            material="shader: flat; src: #vid-apel; transparent: false;">
+          </a-plane>
+        </a-entity>
+      </a-entity>
+
+      <!-- MARKER 2 — PISANG -->
+      <a-entity mindar-image="targetIndex: 2" class="ar-marker" data-index="2">
+        <a-entity position="0 -0.1 0" scale="0.8 0.8 0.8"
+          gltf-model="./assets/models/Pisang.glb"
+          animation="property: rotation; to: 0 360 0; dur: 8000; loop: true; easing: linear">
+        </a-entity>
+        <a-entity position="0 -0.15 -0.6">
+          <a-plane width="0.7" height="0.4"
+            material="shader: flat; src: #vid-pisang; transparent: false;">
+          </a-plane>
+        </a-entity>
+      </a-entity>
+
+      <a-light type="ambient" color="#fff" intensity="0.7"></a-light>
+      <a-light type="directional" color="#fff" intensity="0.5" position="1 1 1"></a-light>
+    </a-scene>
+  </div>
+
+  <!-- ======= APP UI ======= -->
+  <div id="app">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="home-greeting">🌿 Halo, Teman!</div>
+      <div class="home-sub">Belajar isyarat jadi menyenangkan</div>
+
+      <div class="home-scan-card">
+        <div class="row">
+          <div class="big-icon">📸</div>
+          <div>
+            <h2>Ayo Scan!</h2>
+            <p>Scan Marker AR untuk belajar</p>
+          </div>
+        </div>
+        <button class="btn-scan" id="goto-scanner">Scan Marker AR</button>
+      </div>
+
+      <div class="section-label">📚 Pilih Belajar</div>
+      <div class="category-grid">
+        <div class="cat-card">
+          <span class="emoji">🍎</span>
+          <div class="name">Buah-buahan</div>
+          <div class="count">12 Materi</div>
+        </div>
+        <div class="cat-card">
+          <span class="emoji">🐄</span>
+          <div class="name">Hewan Ternak</div>
+          <div class="count">8 Materi</div>
+        </div>
+        <div class="cat-card">
+          <span class="emoji">🧍</span>
+          <div class="name">Anggota Tubuh</div>
+          <div class="count">15 Materi</div>
+        </div>
+        <div class="cat-card">
+          <span class="emoji">📦</span>
+          <div class="name">Benda di Kelas</div>
+          <div class="count">10 Materi</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCANNER -->
+    <div class="page" id="page-scanner">
+      <div class="scanner-top">
+        <button class="back" id="back-from-scanner">← Kembali</button>
+        <span class="title">📸 Scanner AR</span>
+        <span></span>
+      </div>
+
+      <div class="scan-area">
+        <div class="scan-frame" id="scan-frame">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scan-label">Arahkan kamera ke Kartu ARISA</div>
+        <div class="scan-tags">
+          <span>📖 Buku</span>
+          <span>🍎 Apel</span>
+          <span>🍌 Pisang</span>
+        </div>
+      </div>
+
+      <div id="scan-timeout">
+        <span class="icon">📱</span>
+        <div class="text">Pastikan kartu terlihat<br>dan ruangan cukup terang</div>
+      </div>
+
+      <div id="scan-result">
+        <span class="emoji" id="result-emoji">🍎</span>
+        <div class="name" id="result-name">Apel</div>
+        <div class="desc" id="result-desc">Buah merah yang manis dan renyah.</div>
+        <div class="result-actions">
+          <button class="btn-isyarat">🤟 Lihat Isyarat</button>
+          <button class="btn-ulang">⟳ Ulangi Scan</button>
+        </div>
+      </div>
+
+      <div class="scanner-status" id="scanner-status">
+        <span class="dot"></span>
+        <span id="status-text">Memulai AR...</span>
+      </div>
+    </div>
+
+    <!-- LIBRARY -->
+    <div class="page" id="page-library">
+      <div class="lib-header">📚 Kamus Isyarat</div>
+      <div class="lib-sub">Semua kartu yang tersedia</div>
+      <div id="library-list"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="settings-title">⚙️ Pengaturan</div>
+
+      <div class="settings-group">
+        <div class="settings-row">
+          <div class="settings-label">Efek Suara</div>
+          <div class="toggle on" id="toggle-sound"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">Musik Latar</div>
+          <div class="toggle" id="toggle-music"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">Bahasa</div>
+          <div class="settings-value">Bahasa Indonesia</div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-row">
+          <div class="settings-label">Profil</div>
+          <div class="settings-value">Atur nama & avatarmu →</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">Tentang ARISA</div>
+          <div class="settings-value">v1.2.0 (BETA)</div>
+        </div>
+      </div>
+
+      <div class="settings-about">
+        Dibuat untuk penelitian<br>
+        <span>ARISA Project 2026</span>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+      <button class="nav-item active" data-tab="home">
+        <span class="icon">🏠</span>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" data-tab="scanner">
+        <span class="icon">📸</span>
+        <span>Scanner</span>
+      </button>
+      <button class="nav-item" data-tab="library">
+        <span class="icon">📚</span>
+        <span>Library</span>
+      </button>
+      <button class="nav-item" data-tab="settings">
+        <span class="icon">⚙️</span>
+        <span>Settings</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // ======= MARKER DATA =======
+      var markerData = [{
+        index: 0,
+        name: 'Buku',
+        emoji: '📖',
+        color: '#4CAF50',
+        bgColor: 'rgba(76,175,80,0.12)',
+        desc: 'Buka kedua telapak tangan seperti membuka buku.',
+        modelPath: './assets/models/Buku.glb',
+        videoPath: './assets/videos/buku.mp4',
+        ready: true
+      }, {
+        index: 1,
+        name: 'Apel',
+        emoji: '🍎',
+        color: '#e53935',
+        bgColor: 'rgba(229,57,53,0.12)',
+        desc: 'Tangan seperti memegang apel di depan mulut.',
+        modelPath: './assets/models/Apel.glb',
+        videoPath: './assets/videos/apel.mp4',
+        ready: true
+      }, {
+        index: 2,
+        name: 'Pisang',
+        emoji: '🍌',
+        color: '#f9a825',
+        bgColor: 'rgba(249,168,37,0.12)',
+        desc: 'Gerakan tangan mengupas pisang.',
+        modelPath: './assets/models/Pisang.glb',
+        videoPath: './assets/videos/pisang.mp4',
+        ready: true
+      }];
+
+      // ======= A-FRAME: marker-listener =======
+      if (typeof AFRAME !== 'undefined') {
+        AFRAME.registerComponent('marker-listener', {
+          init: function() {
+            var el = this.el;
+            var idx = parseInt(el.getAttribute('data-index'), 10);
+            var videoMap = { 0: 'vid-buku', 1: 'vid-apel', 2: 'vid-pisang' };
+            var videoId = videoMap[idx];
+
+            el.addEventListener('targetFound', function() {
+              document.body.dispatchEvent(new CustomEvent('marker-found', { detail: { index: idx } }));
+              if (videoId) {
+                var vid = document.getElementById(videoId);
+                if (vid) vid.play().catch(function() {});
+              }
+            });
+            el.addEventListener('targetLost', function() {
+              document.body.dispatchEvent(new CustomEvent('marker-lost', { detail: { index: idx } }));
+              if (videoId) {
+                var vid = document.getElementById(videoId);
+                if (vid) { vid.pause();
+                  vid.currentTime = 0; }
+              }
+            });
+          }
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.ar-marker').forEach(function(el) {
+          el.setAttribute('marker-listener', '');
+        });
+      });
+
+      // ======= UI ELEMENTS =======
+      var elSplash = document.getElementById('splash');
+      var elWelcome = document.getElementById('welcome');
+      var elApp = document.getElementById('app');
+      var elScanner = document.getElementById('page-scanner');
+      var elScanFrame = document.getElementById('scan-frame');
+      var elStatusText = document.getElementById('status-text');
+      var elStatusBar = document.getElementById('scanner-status');
+      var elTimeout = document.getElementById('scan-timeout');
+      var elResult = document.getElementById('scan-result');
+      var elRename = document.getElementById('result-name');
+      var elReEmoji = document.getElementById('result-emoji');
+      var elReDesc = document.getElementById('result-desc');
+
+      var arReady = false;
+      var currentMarker = -1;
+      var noMarkerTimer = null;
+      var timeoutShown = false;
+      var arStarted = false;
+
+      // ======= SPLASH → WELCOME =======
+      setTimeout(function() {
+        elSplash.classList.add('hidden');
+        setTimeout(function() { elSplash.style.display = 'none'; }, 500);
+      }, 1500);
+
+      // ======= WELCOME → APP =======
+      document.getElementById('btn-mulai').addEventListener('click', function() {
+        elWelcome.classList.add('hidden');
+        setTimeout(function() {
+          elWelcome.style.display = 'none';
+          elApp.style.display = 'flex';
+          // Start AR
+          initAR();
+        }, 400);
+      });
+
+      // ======= NAVIGATION =======
+      var pageMap = {
+        home: 'page-home',
+        scanner: 'page-scanner',
+        library: 'page-library',
+        settings: 'page-settings'
+      };
+
+      function switchPage(tab) {
+        var id = pageMap[tab];
+        if (!id) return;
+
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        var target = document.getElementById(id);
+        if (target) target.classList.add('active');
+
+        document.querySelectorAll('.nav-item').forEach(function(b) {
+          b.classList.remove('active');
+          if (b.getAttribute('data-tab') === tab) b.classList.add('active');
+        });
+
+        // Scanner-specific
+        var isScan = (tab === 'scanner');
+        if (elScanFrame) elScanFrame.style.display = isScan ? '' : 'none';
+        if (tab !== 'scanner') {
+          resetNoMarkerTimer();
+        } else if (arReady && currentMarker === -1) {
+          startNoMarkerTimer();
+        }
+      }
+
+      document.querySelectorAll('.nav-item').forEach(function(btn) {
+        btn.addEventListener('click', function() { switchPage(this.getAttribute('data-tab')); });
+      });
+
+      document.getElementById('goto-scanner').addEventListener('click', function() { switchPage('scanner'); });
+      document.getElementById('back-from-scanner').addEventListener('click', function() { switchPage('home'); });
+
+      // ======= TOGGLES =======
+      document.querySelectorAll('.toggle').forEach(function(t) {
+        t.addEventListener('click', function() { this.classList.toggle('on'); });
+      });
+
+      // ======= AR FUNCTIONS =======
+      function initAR() {
+        if (arStarted) return;
+        arStarted = true;
+        var scene = document.getElementById('ar-scene');
+        if (!scene) return;
+
+        scene.addEventListener('arReady', function() {
+          arReady = true;
+          setStatus('Mencari marker...');
+          startNoMarkerTimer();
+        });
+        scene.addEventListener('arError', function() {
+          setStatus('❌ Gagal memulai AR');
+        });
+
+        // Start AR
+        if (scene.components && scene.components['mindar-image']) {
+          scene.components['mindar-image'].start();
+        }
+        // Manual start via attribute
+        scene.setAttribute('mindar-image', 'autoStart', 'true');
+      }
+
+      function setStatus(text, found) {
+        if (!elStatusText) return;
+        elStatusText.textContent = text;
+        if (found) { elStatusBar.classList.add('found'); } else { elStatusBar.classList.remove('found'); }
+      }
+
+      function showResult(idx) {
+        var m = markerData[idx];
+        if (!m) return;
+        elReEmoji.textContent = m.emoji;
+        elRename.textContent = m.name;
+        elRename.style.color = m.color;
+        elReDesc.textContent = m.desc;
+        elResult.classList.add('show');
+      }
+
+      function hideResult() { elResult.classList.remove('show'); }
+
+      function resetNoMarkerTimer() {
+        if (noMarkerTimer) { clearTimeout(noMarkerTimer);
+          noMarkerTimer = null; }
+        elTimeout.classList.remove('show');
+        timeoutShown = false;
+      }
+
+      function startNoMarkerTimer() {
+        resetNoMarkerTimer();
+        noMarkerTimer = setTimeout(function() {
+          if (!arReady) return;
+          elTimeout.classList.add('show');
+          timeoutShown = true;
+          if (currentMarker === -1) setStatus('🔍 Tidak ada marker');
+        }, 10000);
+      }
+
+      // ======= MARKER EVENTS =======
+      document.body.addEventListener('marker-found', function(e) {
+        var idx = e.detail.index;
+        currentMarker = idx;
+        var m = markerData[idx];
+
+        elScanFrame.style.display = 'none';
+        showResult(idx);
+        setStatus('✅ ' + m.emoji + ' ' + m.name, true);
+        elTimeout.classList.remove('show');
+        resetNoMarkerTimer();
+      });
+
+      document.body.addEventListener('marker-lost', function(e) {
+        if (currentMarker === e.detail.index) {
+          currentMarker = -1;
+          hideResult();
+          setStatus('Mencari marker...');
+          startNoMarkerTimer();
+        }
+        elScanFrame.style.display = '';
+      });
+
+      // ======= RENDER LIBRARY =======
+      function renderLibrary() {
+        var list = document.getElementById('library-list');
+        if (!list) return;
+        list.innerHTML = '';
+        markerData.forEach(function(m) {
+          var card = document.createElement('div');
+          card.className = 'lib-card';
+          card.innerHTML =
+            '<div class="lib-card-icon" style="background:' + m.bgColor + '">' + m.emoji + '</div>' +
+            '<div class="lib-card-body">' +
+            '<div class="lib-card-name" style="color:' + m.color + '">' + m.name + '</div>' +
+            '<div class="lib-card-desc">' + m.desc + '</div>' +
+            '</div>' +
+            '<div class="lib-card-status' + (m.ready ? '' : ' pending') + '">' + (m.ready ? '✅ Siap' : '⏳ Menunggu') +
+            '</div>';
+          list.appendChild(card);
+        });
+      }
+
+      renderLibrary();
+
+      // ======= CLEANUP =======
+      window.addEventListener('beforeunload', function() {
+        if (noMarkerTimer) clearTimeout(noMarkerTimer);
+      });
+
+      console.log('🌿 ARISA v1.2 — UI Figma design');
+    })();
+  </script>
+
+</body>
+</html>
