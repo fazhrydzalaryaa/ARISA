@@ -9,7 +9,7 @@
 
   <!-- CDN LIBRARIES -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.0/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     *,
@@ -1065,8 +1065,22 @@
         setTimeout(function() {
           elWelcome.style.display = 'none';
           elApp.style.display = 'flex';
-          // Start AR
-          initAR();
+          // AR already auto-started with the scene, just listen for events
+          var scene = document.getElementById('ar-scene');
+          if (scene) {
+            scene.addEventListener('arReady', function() {
+              arReady = true;
+              setStatus('Mencari marker...');
+              startNoMarkerTimer();
+            });
+            scene.addEventListener('arError', function(e) {
+              setStatus('❌ Error AR: periksa kamera & izin');
+              console.error('MindAR error:', e.detail);
+            });
+            if (scene.hasLoaded) { arReady = true;
+              setStatus('Mencari marker...');
+              startNoMarkerTimer(); }
+          }
         }, 400);
       });
 
@@ -1114,35 +1128,7 @@
       });
 
       // ======= AR FUNCTIONS =======
-      function initAR() {
-        if (arStarted) return;
-        arStarted = true;
-        var scene = document.getElementById('ar-scene');
-        if (!scene) return;
-
-        scene.addEventListener('arReady', function() {
-          arReady = true;
-          setStatus('Mencari marker...');
-          startNoMarkerTimer();
-        });
-        scene.addEventListener('arError', function(e) {
-          setStatus('❌ AR Error: ' + (e.detail ? e.detail.message || JSON.stringify(e.detail) : 'unknown'));
-          console.error('MindAR error:', e.detail);
-        });
-
-        // Start AR
-        try {
-          if (scene.components && scene.components['mindar-image']) {
-            scene.components['mindar-image'].start();
-          }
-          scene.setAttribute('mindar-image', 'autoStart', 'true');
-        } catch (err) {
-          console.error('AR start error:', err);
-          setStatus('❌ Gagal: ' + err.message);
-        }
-      }
-
-      function setStatus(text, found) {
+function setStatus(text, found) {
         if (!elStatusText) return;
         elStatusText.textContent = text;
         if (found) { elStatusBar.classList.add('found'); } else { elStatusBar.classList.remove('found'); }
