@@ -760,9 +760,9 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-assets>
-        <video id="vid-buku" src="./assets/videos/Buku.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline muted loop></video>
-        <video id="vid-apel" src="./assets/videos/Apel.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline muted loop></video>
-        <video id="vid-pisang" src="./assets/videos/Pisang.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline muted loop></video>
+        <video id="vid-buku" src="./assets/videos/Buku.mp4" preload="auto" webkit-playsinline playsinline muted loop></video>
+        <video id="vid-apel" src="./assets/videos/Apel.mp4" preload="auto" webkit-playsinline playsinline muted loop></video>
+        <video id="vid-pisang" src="./assets/videos/Pisang.mp4" preload="auto" webkit-playsinline playsinline muted loop></video>
       </a-assets>
 
       <!-- MARKER 0 — BUKU -->
@@ -1125,16 +1125,21 @@
           setStatus('Mencari marker...');
           startNoMarkerTimer();
         });
-        scene.addEventListener('arError', function() {
-          setStatus('❌ Gagal memulai AR');
+        scene.addEventListener('arError', function(e) {
+          setStatus('❌ AR Error: ' + (e.detail ? e.detail.message || JSON.stringify(e.detail) : 'unknown'));
+          console.error('MindAR error:', e.detail);
         });
 
         // Start AR
-        if (scene.components && scene.components['mindar-image']) {
-          scene.components['mindar-image'].start();
+        try {
+          if (scene.components && scene.components['mindar-image']) {
+            scene.components['mindar-image'].start();
+          }
+          scene.setAttribute('mindar-image', 'autoStart', 'true');
+        } catch (err) {
+          console.error('AR start error:', err);
+          setStatus('❌ Gagal: ' + err.message);
         }
-        // Manual start via attribute
-        scene.setAttribute('mindar-image', 'autoStart', 'true');
       }
 
       function setStatus(text, found) {
