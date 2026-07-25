@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ARISA - Augmented Reality Isyarat Anak</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#f5f0eb;color:#1a1a2e}
+    /* SPLASH */
+    #splash{position:fixed;inset:0;z-index:9999;background:#e8f5e9;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s}
+    #splash.hidden{opacity:0;pointer-events:none}
+    .splash-icon{font-size:80px;margin-bottom:8px;animation:float 2s ease-in-out infinite}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    .splash-title{font-size:42px;font-weight:900;color:#2e7d32;letter-spacing:4px;margin-bottom:4px}
+    .splash-sub{font-size:14px;color:#558b2f;font-weight:500;letter-spacing:1px}
+    .splash-loading{margin-top:40px;font-size:13px;color:#81c784;animation:pulse 1s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+    /* WELCOME */
+    #welcome{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#e8f5e9,#c8e6c9,#a5d6a7);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;transition:opacity .4s,transform .4s}
+    #welcome.hidden{opacity:0;transform:scale(1.05);pointer-events:none}
+    .wl-icon{font-size:64px;margin-bottom:20px}
+    .wl-title{font-size:28px;font-weight:800;color:#1b5e20;margin-bottom:6px}
+    .wl-sub{font-size:15px;color:#2e7d32;font-weight:500;margin-bottom:40px}
+    .wl-btn{background:#2e7d32;color:#fff;border:none;padding:16px 48px;border-radius:50px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 6px 20px rgba(46,125,50,.35)}
+    .wl-btn:active{transform:scale(.95)}
+    /* APP */
+    #app{position:fixed;inset:0;z-index:10;display:none;flex-direction:column}
+    #app>*{pointer-events:auto}
+    .page{display:none;flex:1;position:relative;overflow-y:auto;background:#f5f0eb;flex-direction:column}
+    .page.active{display:flex}
+    /* HEADER */
+    .header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;background:linear-gradient(180deg,#e8f5e9 0%,#f5f0eb 60%)}
+    .header-title{font-size:20px;font-weight:800;color:#1b5e20}
+    .header-badge{font-size:10px;font-weight:600;background:rgba(46,125,50,.12);color:#2e7d32;padding:3px 10px;border-radius:20px;border:1px solid rgba(46,125,50,.15)}
+    /* BOTTOM NAV */
+    .bottom-nav{flex-shrink:0;display:flex;justify-content:space-around;align-items:center;padding:6px 0 max(6px,env(safe-area-inset-bottom,6px));background:#fff;border-top:1px solid #e8e0d8}
+    .nav-item{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 16px;border-radius:12px;border:none;background:transparent;color:#aaa;font-size:10px;font-family:inherit;cursor:pointer;transition:color .2s,background .2s;min-width:56px}
+    .nav-item .icon{font-size:22px;line-height:1}
+    .nav-item.active{color:#2e7d32;background:rgba(46,125,50,.06)}
+    .nav-item:active{transform:scale(.92)}
+    /* PAGE: HOME */
+    #page-home{padding:0 20px;background:linear-gradient(180deg,#e8f5e9 0%,#f5f0eb 40%)}
+    .home-greeting{font-size:22px;font-weight:800;color:#1b5e20;margin-top:8px;margin-bottom:2px}
+    .home-sub{font-size:13px;color:#888;margin-bottom:20px}
+    .home-scan-card{background:linear-gradient(135deg,#2e7d32,#43a047);border-radius:20px;padding:24px;color:#fff;margin-bottom:20px;box-shadow:0 4px 16px rgba(46,125,50,.25)}
+    .home-scan-card .row{display:flex;align-items:center;gap:12px}
+    .home-scan-card .big-icon{font-size:48px}
+    .home-scan-card h2{font-size:20px;font-weight:700}
+    .home-scan-card p{font-size:13px;opacity:.85;margin-top:2px}
+    .home-scan-card .btn-scan{margin-top:14px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:10px 24px;border-radius:30px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;width:fit-content}
+    .home-scan-card .btn-scan:active{background:rgba(255,255,255,.35)}
+    .section-label{font-size:14px;font-weight:700;color:#333;margin-bottom:10px}
+    .category-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:100px}
+    .cat-card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid #e8e0d8;cursor:pointer;transition:transform .15s}
+    .cat-card:active{transform:scale(.96)}
+    .cat-card .emoji{font-size:32px;display:block;margin-bottom:6px}
+    .cat-card .name{font-size:15px;font-weight:700;color:#1a1a2e}
+    .cat-card .count{font-size:12px;color:#999;margin-top:2px}
+    /* PAGE: SCANNER (3 item) */
+    #page-scanner{padding:20px 20px 100px;gap:8px}
+    .scanner-header{font-size:18px;font-weight:800;color:#1b5e20;margin-bottom:2px}
+    .scanner-sub{font-size:13px;color:#888;margin-bottom:14px}
+    .item-card{display:flex;align-items:center;gap:14px;background:#fff;border-radius:16px;padding:16px;border:1px solid #e8e0d8;margin-bottom:10px;cursor:pointer;text-decoration:none;color:inherit;transition:transform .15s,box-shadow .15s}
+    .item-card:active{transform:scale(.97);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .item-card-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+    .item-card-body{flex:1;min-width:0}
+    .item-card-name{font-size:17px;font-weight:700}
+    .item-card-desc{font-size:12px;color:#999;margin-top:1px}
+    .item-card-url{font-size:10px;color:#aaa;margin-top:3px;word-break:break-all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .item-card-arrow{font-size:18px;color:#ccc;flex-shrink:0}
+    /* PAGE: LIBRARY */
+    #page-library{padding:20px 20px 100px;gap:8px}
+    .lib-header{font-size:18px;font-weight:800;color:#1b5e20;margin-bottom:2px}
+    .lib-sub{font-size:13px;color:#888;margin-bottom:14px}
+    .lib-card{display:flex;align-items:center;gap:14px;background:#fff;border-radius:16px;padding:14px;border:1px solid #e8e0d8;margin-bottom:8px}
+    .lib-card:active{transform:scale(.98)}
+    .lib-card-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+    .lib-card-body{flex:1;min-width:0}
+    .lib-card-name{font-size:16px;font-weight:700}
+    .lib-card-desc{font-size:12px;color:#999;margin-top:1px}
+    .lib-card-status{font-size:10px;font-weight:600;padding:3px 10px;border-radius:12px;white-space:nowrap;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9}
+    /* PAGE: SETTINGS */
+    #page-settings{padding:20px 20px 100px;gap:6px}
+    .settings-title{font-size:18px;font-weight:800;color:#1b5e20;margin-bottom:16px}
+    .settings-group{background:#fff;border-radius:16px;padding:4px 16px;border:1px solid #e8e0d8;margin-bottom:10px}
+    .settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+    .settings-row+.settings-row{border-top:1px solid #f0ebe5}
+    .settings-label{font-size:14px;font-weight:600}
+    .settings-label small{display:block;font-size:12px;font-weight:400;color:#999;margin-top:1px}
+    .settings-value{font-size:13px;color:#666;text-align:right}
+    .toggle{width:44px;height:24px;border-radius:12px;background:#ddd;position:relative;cursor:pointer;transition:background .25s;flex-shrink:0}
+    .toggle.on{background:#43a047}
+    .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .25s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+    .toggle.on::after{transform:translateX(20px)}
+    .settings-about{text-align:center;padding:20px 0 10px;font-size:12px;color:#bbb}
+    .settings-about span{color:#2e7d32}
+    /* scrollbar */
+    .page::-webkit-scrollbar{width:3px}
+    .page::-webkit-scrollbar-track{background:transparent}
+    .page::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:3px}
+  </style>
+</head>
+<body>
+
+  <!-- SPLASH -->
+  <div id="splash">
+    <div class="splash-icon">🌿</div>
+    <div class="splash-title">ARISA</div>
+    <div class="splash-sub">Augmented Reality Isyarat Anak</div>
+    <div class="splash-loading">Loading...</div>
+  </div>
+
+  <!-- WELCOME -->
+  <div id="welcome">
+    <div class="wl-icon">🌿</div>
+    <div class="wl-title">Belajar BISINDO</div>
+    <div class="wl-sub">Halo, Teman!</div>
+    <button class="wl-btn" id="btn-mulai">Mulai Belajar</button>
+  </div>
+
+  <!-- APP -->
+  <div id="app">
+    <!-- HEADER -->
+    <div class="header">
+      <span class="header-title">🌿 ARISA</span>
+      <span class="header-badge">v1.2 BETA</span>
+    </div>
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="home-greeting">🌿 Halo, Teman!</div>
+      <div class="home-sub">Belajar isyarat jadi menyenangkan</div>
+      <div class="home-scan-card">
+        <div class="row">
+          <div class="big-icon">📖</div>
+          <div>
+            <h2>Ayo Belajar!</h2>
+            <p>Pilih kartu untuk lihat AR</p>
+          </div>
+        </div>
+        <button class="btn-scan" id="goto-scanner">Lihat Kartu AR</button>
+      </div>
+      <div class="section-label">📚 Kategori</div>
+      <div class="category-grid">
+        <div class="cat-card"><span class="emoji">🍎</span><div class="name">Buah-buahan</div><div class="count">3 Kartu</div></div>
+        <div class="cat-card"><span class="emoji">📖</span><div class="name">Benda</div><div class="count">1 Kartu</div></div>
+        <div class="cat-card"><span class="emoji">🧏</span><div class="name">Isyarat Dasar</div><div class="count">Coming Soon</div></div>
+        <div class="cat-card"><span class="emoji">🔤</span><div class="name">Abjad</div><div class="count">Coming Soon</div></div>
+      </div>
+    </div>
+
+    <!-- SCANNER (3 item clickable) -->
+    <div class="page" id="page-scanner">
+      <div class="scanner-header">📖 Kartu AR</div>
+      <div class="scanner-sub">Tap kartu untuk membuka AR Viewer</div>
+      <div id="item-list"></div>
+    </div>
+
+    <!-- LIBRARY -->
+    <div class="page" id="page-library">
+      <div class="lib-header">📚 Kamus Isyarat</div>
+      <div class="lib-sub">Semua kartu yang tersedia</div>
+      <div id="library-list"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="settings-title">⚙️ Pengaturan</div>
+      <div class="settings-group">
+        <div class="settings-row"><div class="settings-label">Efek Suara</div><div class="toggle on" id="toggle-sound"></div></div>
+        <div class="settings-row"><div class="settings-label">Musik Latar</div><div class="toggle" id="toggle-music"></div></div>
+        <div class="settings-row"><div class="settings-label">Bahasa</div><div class="settings-value">Bahasa Indonesia</div></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row"><div class="settings-label">Profil</div><div class="settings-value">Atur nama & avatarmu →</div></div>
+        <div class="settings-row"><div class="settings-label">Tentang ARISA</div><div class="settings-value">v1.2 (BETA)</div></div>
+      </div>
+      <div class="settings-about">Dibuat untuk penelitian<br><span>ARISA Project 2026</span></div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+      <button class="nav-item active" data-tab="home"><span class="icon">🏠</span><span>Home</span></button>
+      <button class="nav-item" data-tab="scanner"><span class="icon">📖</span><span>Kartu</span></button>
+      <button class="nav-item" data-tab="library"><span class="icon">📚</span><span>Library</span></button>
+      <button class="nav-item" data-tab="settings"><span class="icon">⚙️</span><span>Settings</span></button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // DATA ITEM
+      var items = [
+        {
+          name: 'Buku',
+          emoji: '📖',
+          color: '#4CAF50',
+          bgColor: 'rgba(76,175,80,0.12)',
+          desc: 'Belajar isyarat Buku dalam BISINDO',
+          url: '___URL_BUKU___'
+        },
+        {
+          name: 'Apel',
+          emoji: '🍎',
+          color: '#e53935',
+          bgColor: 'rgba(229,57,53,0.12)',
+          desc: 'Belajar isyarat Apel dalam BISINDO',
+          url: 'https://viewer.assemblrworld.com/Marker/-RjisGxuldlYKJfvoVfW'
+        },
+        {
+          name: 'Pisang',
+          emoji: '🍌',
+          color: '#f9a825',
+          bgColor: 'rgba(249,168,37,0.12)',
+          desc: 'Belajar isyarat Pisang dalam BISINDO',
+          url: '___URL_PISANG___'
+        }
+      ];
+
+      // SPLASH
+      var splash = document.getElementById('splash');
+      setTimeout(function() {
+        splash.classList.add('hidden');
+        setTimeout(function(){splash.style.display='none'},400);
+      }, 1500);
+
+      // WELCOME
+      document.getElementById('btn-mulai').addEventListener('click', function() {
+        document.getElementById('welcome').classList.add('hidden');
+        setTimeout(function(){
+          document.getElementById('welcome').style.display='none';
+          document.getElementById('app').style.display='flex';
+        }, 400);
+      });
+
+      // NAVIGATION
+      var pageMap = {home:'page-home', scanner:'page-scanner', library:'page-library', settings:'page-settings'};
+
+      function switchPage(tab) {
+        var id = pageMap[tab];
+        if (!id) return;
+        document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+        var target = document.getElementById(id);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(function(b){
+          b.classList.remove('active');
+          if (b.getAttribute('data-tab') === tab) b.classList.add('active');
+        });
+      }
+
+      document.querySelectorAll('.nav-item').forEach(function(btn){
+        btn.addEventListener('click', function(){ switchPage(this.getAttribute('data-tab')); });
+      });
+
+      document.getElementById('goto-scanner').addEventListener('click', function(){ switchPage('scanner'); });
+
+      // TOGGLES
+      document.querySelectorAll('.toggle').forEach(function(t){
+        t.addEventListener('click', function(){ this.classList.toggle('on'); });
+      });
+
+      // RENDER ITEMS (scanner)
+      var list = document.getElementById('item-list');
+      items.forEach(function(item){
+        var card = document.createElement('a');
+        card.className = 'item-card';
+        card.href = item.url;
+        card.target = '_blank';
+        card.rel = 'noopener';
+        card.innerHTML =
+          '<div class="item-card-icon" style="background:'+item.bgColor+'">'+item.emoji+'</div>' +
+          '<div class="item-card-body">' +
+            '<div class="item-card-name" style="color:'+item.color+'">'+item.name+'</div>' +
+            '<div class="item-card-desc">'+item.desc+'</div>' +
+            '<div class="item-card-url">🔗 '+item.url+'</div>' +
+          '</div>' +
+          '<div class="item-card-arrow">→</div>';
+        list.appendChild(card);
+      });
+
+      // RENDER LIBRARY
+      var libList = document.getElementById('library-list');
+      items.forEach(function(item){
+        var card = document.createElement('div');
+        card.className = 'lib-card';
+        card.innerHTML =
+          '<div class="lib-card-icon" style="background:'+item.bgColor+'">'+item.emoji+'</div>' +
+          '<div class="lib-card-body">' +
+            '<div class="lib-card-name" style="color:'+item.color+'">'+item.name+'</div>' +
+            '<div class="lib-card-desc">'+item.desc+'</div>' +
+          '</div>' +
+          '<div class="lib-card-status">✅ Siap</div>';
+        libList.appendChild(card);
+      });
+
+      console.log('🌿 ARISA v1.2 loaded');
+    })();
+  </script>
+</body>
+</html>
