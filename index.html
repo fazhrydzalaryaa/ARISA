@@ -3,79 +3,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ARISA - AR Test</title>
+  <title>ARISA</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; background: #000; }
-    #app { position: relative; width: 100%; height: 100%; }
-    #welcome { position:absolute;inset:0;z-index:100;background:linear-gradient(135deg,#e8f5e9,#a5d6a7);display:flex;flex-direction:column;align-items:center;justify-content:center; }
-    #welcome.hidden { display: none; }
-    h1 { font-size:28px;color:#1b5e20;margin-bottom:8px; }
-    p { color:#2e7d32;margin-bottom:30px; }
-    button { background:#2e7d32;color:#fff;border:none;padding:16px 48px;border-radius:50px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer; }
-    #ar-container { width:100%;height:100%; }
-    #ar-canvas { width:100%;height:100%; display: block; }
-    #status { position:absolute;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:10; }
-    #result { position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:16px 24px;border-radius:16px;text-align:center;display:none;z-index:10;font-size:18px; }
-    .a-enter-vr, .a-enter-ar { display:none !important; }
-    #debug { position:absolute;top:10px;left:10px;color:#0f0;font-size:11px;z-index:99;font-family:monospace;background:rgba(0,0,0,0.6);padding:8px;border-radius:8px;max-height:200px;overflow-y:auto; }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;background:#000}
+    #splash{position:fixed;inset:0;z-index:9999;background:#e8f5e9;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s}
+    #splash.hidden{opacity:0;pointer-events:none}
+    #welcome{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#e8f5e9,#a5d6a7);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;transition:opacity .4s}
+    #welcome.hidden{opacity:0;pointer-events:none}
+    h1{font-size:42px;font-weight:900;color:#1b5e20;margin-bottom:4px}
+    .sub{color:#2e7d32;margin-bottom:30px}
+    button{background:#2e7d32;color:#fff;border:none;padding:16px 48px;border-radius:50px;font-size:17px;font-weight:700;cursor:pointer}
+    #ar-container{position:fixed;inset:0;z-index:1}
+    .a-enter-vr,.a-enter-ar{display:none!important}
   </style>
 </head>
 <body>
-  <div id="app">
-    <div id="welcome">
-      <h1>🌿 ARISA</h1>
-      <p>Halo, Teman!</p>
-      <button id="btn-mulai">Mulai Belajar</button>
-    </div>
-
-    <div id="ar-container" style="display:none">
-      <canvas id="ar-canvas"></canvas>
-    </div>
-
-    <div id="debug">Menunggu...</div>
-    <div id="status">🔍 Memulai AR...</div>
-    <div id="result"></div>
+  <div id="splash">
+    <div style="font-size:80px">🌿</div>
+    <h1>ARISA</h1>
+    <div class="sub">Augmented Reality Isyarat Anak</div>
   </div>
+  <div id="welcome">
+    <div style="font-size:64px">🌿</div>
+    <h1 style="font-size:28px">Belajar BISINDO</h1>
+    <div class="sub">Halo, Teman!</div>
+    <button id="btn-mulai">Mulai Belajar</button>
+  </div>
+  <div id="ar-container">
+    <a-scene id="ar-scene"
+      mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
+      embedded color-space="sRGB" vr-mode-ui="enabled: false" loading-screen="enabled: false">
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image.prod.js"></script>
+      <a-entity mindar-image="targetIndex: 0">
+        <a-box color="#4CAF50" scale="0.4 0.4 0.4" position="0 0.2 0"
+          animation="property: rotation; to: 0 360 0; dur: 4000; loop: true">
+        </a-box>
+      </a-entity>
+      <a-entity mindar-image="targetIndex: 1">
+        <a-sphere color="#e53935" scale="0.35 0.35 0.35" radius="0.5" position="0 0.2 0"
+          animation="property: rotation; to: 360 0 0; dur: 5000; loop: true">
+        </a-sphere>
+      </a-entity>
+      <a-entity mindar-image="targetIndex: 2">
+        <a-cylinder color="#f9a825" radius="0.5" height="0.8" position="0 0.2 0"
+          animation="property: rotation; to: 0 360 360; dur: 6000; loop: true">
+        </a-cylinder>
+      </a-entity>
+
+      <a-light type="ambient" color="#fff" intensity="0.7"></a-light>
+      <a-light type="directional" color="#fff" intensity="0.5" position="1 1 1"></a-light>
+    </a-scene>
+  </div>
   <script>
-    document.getElementById('btn-mulai').addEventListener('click', async function() {
-      document.getElementById('welcome').classList.add('hidden');
-      document.getElementById('ar-container').style.display = 'block';
-      document.getElementById('debug').textContent = 'Memulai MindAR...';
+    (function() {
+      var splash = document.getElementById('splash');
+      var welcome = document.getElementById('welcome');
 
-      try {
-        const controller = new window.MINDAR.IMAGE.MindARThree({
-          container: document.getElementById('ar-container'),
-          imageTargetSrc: './assets/target/targets.mind',
-        });
+      setTimeout(function() {
+        splash.classList.add('hidden');
+        setTimeout(function(){splash.style.display='none'},400);
+      }, 1500);
 
-        const { renderer, scene, camera } = controller;
-        const canvas = renderer.domElement;
-        canvas.id = 'ar-canvas';
-        document.getElementById('ar-container').appendChild(canvas);
-
-        document.getElementById('debug').textContent = 'AR siap, scanning...';
-        document.getElementById('status').textContent = '🔍 Mencari marker...';
-
-        await controller.start();
-        document.getElementById('status').textContent = '✅ AR berjalan!';
-
-        // Animation loop
-        function animate() {
-          controller.update();
-          renderer.render(scene, camera);
-          requestAnimationFrame(animate);
-        }
-        animate();
-
-      } catch (err) {
-        document.getElementById('debug').textContent = '❌ Error: ' + err.message;
-        document.getElementById('status').textContent = '❌ Gagal: ' + err.message;
-        console.error('AR Error:', err);
-      }
-    });
+      document.getElementById('btn-mulai').addEventListener('click', function() {
+        welcome.classList.add('hidden');
+        setTimeout(function(){
+          welcome.style.display='none';
+          var scene = document.getElementById('ar-scene');
+          scene.addEventListener('arReady', function(){ console.log('✅ AR ready!'); });
+          scene.addEventListener('arError', function(e){ console.error('❌ AR error:', e.detail); });
+          scene.setAttribute('mindar-image', { autoStart: true });
+        }, 400);
+      });
+    })();
   </script>
 </body>
 </html>
